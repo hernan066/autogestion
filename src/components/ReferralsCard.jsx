@@ -206,9 +206,10 @@ export default function ReferralsCard({ clientData }) {
         ) : referrals.length > 0 ? (
           <div className="friend-list">
             {referrals.map((ref) => {
-              const name = ref.recommendedUser?.name || "Cliente";
-              const lastName = ref.recommendedUser?.lastName || "Invitado";
-              const avatar = ref.recommendedUser?.avatar;
+              const userObj = ref.recommendedUser || ref.recommendedClient?.user;
+              const name = userObj?.name?.trim() || "Cliente";
+              const lastName = userObj?.lastName?.trim() || "Invitado";
+              const avatar = userObj?.avatar;
               const pointsEarned = ref.points || 0;
               const initials =
                 `${name[0] || ""}${lastName[0] || ""}`.toUpperCase();
@@ -216,28 +217,34 @@ export default function ReferralsCard({ clientData }) {
               return (
                 <div key={ref._id} className="friend-item">
                   <div className="friend-info">
-                    {avatar ? (
+                    {avatar && (
                       <img
                         src={avatar}
                         className="friend-avatar"
                         alt={`${name} avatar`}
-                      />
-                    ) : (
-                      <div
-                        className="friend-avatar"
-                        style={{
-                          background: "var(--accent-purple-glow)",
-                          color: "#c084fc",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: "11px",
-                          fontWeight: 700,
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                          const initialsEl = e.target.nextSibling;
+                          if (initialsEl) {
+                            initialsEl.style.display = "flex";
+                          }
                         }}
-                      >
-                        {initials || "?"}
-                      </div>
+                      />
                     )}
+                    <div
+                      className="friend-avatar"
+                      style={{
+                        background: "var(--accent-purple-glow)",
+                        color: "#c084fc",
+                        display: avatar ? "none" : "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "11px",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {initials || "?"}
+                    </div>
                     <span className="friend-name">
                       {name} {lastName}
                     </span>
