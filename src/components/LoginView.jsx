@@ -131,6 +131,23 @@ export default function LoginView({ onLoginSuccess, refId }) {
     }
   };
 
+  const isLinking = !!(localStorage.getItem("pending_link"));
+  const isRegistering = !!(refId || localStorage.getItem("pending_ref") || localStorage.getItem("pending_tenant"));
+
+  let badgeText = "PROGRAMA DE RECOMPENSAS";
+  let titleText = "Autogestión de Clientes";
+  let taglineText = "Accede para ver tus puntos acumulados, canjear beneficios exclusivos, completar tus datos y recomendar amigos para ganar más recompensas.";
+
+  if (isLinking) {
+    badgeText = "VALIDACIÓN DE CUENTA";
+    titleText = "Vincular tu Cuenta";
+    taglineText = "Vincula tu cuenta de Google para validar tu correo, consultar tus puntos acumulados y gestionar tus compras de forma ágil y segura.";
+  } else if (isRegistering) {
+    badgeText = "NUEVO REGISTRO";
+    titleText = "Crear Cuenta en Ringo Agromarket";
+    taglineText = "Regístrate de forma rápida con tu cuenta de Google para unirte a nuestro programa de fidelización, comenzar a acumular puntos en cada compra y acceder a descuentos exclusivos.";
+  }
+
   return (
     <div className="login-wrapper animate-fade-in">
       <div className="login-card glass-card">
@@ -138,15 +155,15 @@ export default function LoginView({ onLoginSuccess, refId }) {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
           </svg>
-          PROGRAMA DE RECOMPENSAS
+          {badgeText}
         </div>
 
         <img src="/logo.png" className="login-logo" alt="Ringo Agromarket Logo" />
         
         <div>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '6px' }}>Autogestión de Clientes</h2>
+          <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '6px' }}>{titleText}</h2>
           <p className="login-tagline">
-            Accede para ver tus puntos acumulados, canjear beneficios exclusivos, completar tus datos y recomendar amigos para ganar más recompensas.
+            {taglineText}
           </p>
         </div>
 
@@ -171,35 +188,6 @@ export default function LoginView({ onLoginSuccess, refId }) {
             </div>
           ) : (
             <div id="google-signin-btn" className="google-button-container" />
-          )}
-        </div>
-
-        <div style={{ marginTop: '20px', borderTop: '1px solid var(--border-light)', paddingTop: '16px' }}>
-          <button 
-            type="button" 
-            className="btn-premium btn-outline" 
-            style={{ fontSize: '13px', padding: '8px 16px', borderRadius: '8px' }}
-            onClick={() => setShowSandbox(!showSandbox)}
-          >
-            {showSandbox ? "Ocultar Modo Sandbox" : "🔧 Modo de Prueba Local (Sandbox)"}
-          </button>
-
-          {showSandbox && (
-            <form onSubmit={handleSandboxLogin} className="sandbox-banner animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '12px' }}>
-              <p><strong>Modo Sandbox local:</strong> Ingresa un correo electrónico de un cliente ya existente en la base de datos para probar sin credenciales reales de Google.</p>
-              <input 
-                type="email" 
-                placeholder="ej: juan.test@gmail.com" 
-                value={sandboxEmail} 
-                onChange={(e) => setSandboxEmail(e.target.value)}
-                className="premium-input"
-                style={{ padding: '8px 12px', fontSize: '13px' }}
-                required
-              />
-              <button type="submit" className="btn-premium btn-cyan" style={{ padding: '8px 12px', fontSize: '13px', borderRadius: '8px' }} disabled={loading}>
-                Ingresar como Test
-              </button>
-            </form>
           )}
         </div>
       </div>
