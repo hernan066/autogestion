@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 
 export default function DashboardView({ clientData, configData }) {
   const points = clientData?.points || 0;
-  const conversionRate = configData?.pointsConversionRate || 1; // e.g. 1 point = $0.10 or 10 points = $1
+  const conversionRate = configData?.pointsConversionRate || 10; // e.g. 10 points = $1
   
   // Calculate local cash value equivalent:
-  // Usually, pointsDiscount = points * pointsConversionRate
-  const cashEquivalent = points * conversionRate;
+  // pointsDiscount = points / pointsConversionRate
+  const cashEquivalent = points / conversionRate;
 
   // Let's create an interactive calculator
   const [calcPoints, setCalcPoints] = useState(points || 0);
@@ -83,7 +83,7 @@ export default function DashboardView({ clientData, configData }) {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'rgba(6, 182, 212, 0.06)', border: '1px dashed rgba(6, 182, 212, 0.2)', padding: '12px', borderRadius: '12px', marginTop: '6px' }}>
               <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Obtienes un descuento de:</span>
               <strong style={{ fontSize: '16px', color: 'var(--accent-cyan)' }}>
-                ${(calcPoints * conversionRate).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${(calcPoints / conversionRate).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </strong>
             </div>
           </div>
