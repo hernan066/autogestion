@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 
-export default function ReferralsCard({ clientData }) {
+export default function ReferralsCard({ clientData, configData }) {
   const clientId = clientData?._id;
   const [referrals, setReferrals] = useState([]);
   const [loading, setLoading] = useState(false);

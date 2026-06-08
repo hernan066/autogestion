@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function DashboardView({ clientData, configData }) {
   const points = clientData?.points || 0;
@@ -10,14 +10,120 @@ export default function DashboardView({ clientData, configData }) {
 
   // Let's create an interactive calculator
   const [calcPoints, setCalcPoints] = useState(points || 0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(true);
+
+  const banners =
+    configData?.referralBanners && configData.referralBanners.length > 0
+      ? configData.referralBanners
+      : configData?.referralBannerUrl
+      ? [configData.referralBannerUrl]
+      : [];
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const interval = setInterval(() => {
+      setIsTransitioning(true);
+      setCurrentSlide((prev) => prev + 1);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [banners.length]);
+
+  const handleTransitionEnd = () => {
+    if (currentSlide === banners.length) {
+      setIsTransitioning(false);
+      setCurrentSlide(0);
+    }
+  };
+
+  const handleDotClick = (idx) => {
+    setIsTransitioning(true);
+    setCurrentSlide(idx);
+  };
 
   const handleSliderChange = (e) => {
     setCalcPoints(Number(e.target.value));
   };
 
   return (
-    <div className="points-widget glass-card animate-fade-in" style={{ width: '100%' }}>
-      <div className="section-title" style={{ width: '100%', marginBottom: '16px' }}>
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "20px" }}>
+      {banners.length > 0 && (
+        <div
+          className="glass-card animate-fade-in"
+          style={{
+            width: "100%",
+            padding: 0,
+            overflow: "hidden",
+            aspectRatio: "16/9",
+            border: "1px solid var(--border-light)",
+            position: "relative"
+          }}
+        >
+          <div
+            onTransitionEnd={handleTransitionEnd}
+            style={{
+              display: "flex",
+              width: "100%",
+              height: "100%",
+              transition: isTransitioning ? "transform 0.5s ease-in-out" : "none",
+              transform: `translateX(-${currentSlide * 100}%)`
+            }}
+          >
+            {(banners.length > 1 ? [...banners, banners[0]] : banners).map((url, idx) => (
+              <img
+                key={`${url}-${idx}`}
+                src={url}
+                alt={`Promoción ${idx + 1}`}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  flexShrink: 0
+                }}
+              />
+            ))}
+          </div>
+
+          {banners.length > 1 && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: "12px",
+                left: "50%",
+                transform: "translateX(-50%)",
+                display: "flex",
+                gap: "8px",
+                zIndex: 10
+              }}
+            >
+              {banners.map((_, idx) => {
+                const isActive = idx === (currentSlide % banners.length);
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleDotClick(idx)}
+                    style={{
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      background: isActive ? "var(--accent-yellow)" : "rgba(255, 255, 255, 0.4)",
+                      border: "none",
+                      padding: 0,
+                      cursor: "pointer",
+                      transition: "background 0.3s, transform 0.2s",
+                      transform: isActive ? "scale(1.2)" : "scale(1)",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.3)"
+                    }}
+                    title={`Ver imagen ${idx + 1}`}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+      <div className="points-widget glass-card animate-fade-in" style={{ width: '100%' }}>
+        <div className="section-title" style={{ width: '100%', marginBottom: '16px' }}>
         Mi Saldo de Beneficios
       </div>
 
@@ -94,5 +200,6 @@ export default function DashboardView({ clientData, configData }) {
         )}
       </div>
     </div>
+   </div>
   );
 }

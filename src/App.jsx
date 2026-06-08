@@ -5,6 +5,20 @@ import ProfileForm from './components/ProfileForm';
 import ReferralsCard from './components/ReferralsCard';
 import './App.css';
 
+const preloadImages = (urls) => {
+  return Promise.all(
+    urls.map((url) => {
+      return new Promise((resolve) => {
+        if (!url) return resolve();
+        const img = new Image();
+        img.src = url;
+        img.onload = () => resolve();
+        img.onerror = () => resolve();
+      });
+    })
+  );
+};
+
 export default function App() {
   const [session, setSession] = useState(null);
   const [clientData, setClientData] = useState(null);
@@ -12,6 +26,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard', 'profile', 'referrals'
   const [refId, setRefId] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [apiLoading, setApiLoading] = useState(false);
 
   // 1. Capturar código de referido, link o tenant al inicio desde los parámetros de la URL
   useEffect(() => {
@@ -42,6 +57,7 @@ export default function App() {
       try {
         const parsed = JSON.parse(storedClient);
         setSession(parsed);
+        setApiLoading(true); // Activar la carga general inmediatamente si ya hay sesión persistida
       } catch (err) {
         console.error("Error al parsear sesión guardada:", err);
       }
@@ -54,6 +70,7 @@ export default function App() {
     const currentClient = clientRecord || session;
     if (!currentClient?._id) return;
 
+    setApiLoading(true);
     try {
       const apiBase = import.meta.env.VITE_API_URL || "http://localhost:4000";
       
@@ -65,10 +82,12 @@ export default function App() {
         }
       });
       const clientJson = await clientRes.json();
+      let updatedClient = null;
       if (clientJson.ok && clientJson.data?.client) {
-        setClientData(clientJson.data.client);
+        updatedClient = clientJson.data.client;
+        setClientData(updatedClient);
         // Actualizar sesión guardada en localStorage
-        localStorage.setItem("autogestion_client", JSON.stringify(clientJson.data.client));
+        localStorage.setItem("autogestion_client", JSON.stringify(updatedClient));
       }
 
       // B. Cargar la configuración general (para la conversión de puntos)
@@ -78,17 +97,38 @@ export default function App() {
         }
       });
       const configJson = await configRes.json();
+      let latestConfig = null;
       if (configJson.ok) {
         const configObject = configJson.config || configJson.data?.config;
         if (configObject) {
-          const latestConfig = Array.isArray(configObject) 
+          latestConfig = Array.isArray(configObject) 
             ? configObject[0] 
             : configObject;
           setConfigData(latestConfig);
         }
       }
+
+      // C. Precargar banners y avatar
+      const banners =
+        latestConfig?.referralBanners && latestConfig.referralBanners.length > 0
+          ? latestConfig.referralBanners
+          : latestConfig?.referralBannerUrl
+          ? [latestConfig.referralBannerUrl]
+          : [];
+
+      const avatarUrl = updatedClient?.user?.avatar || currentClient?.user?.avatar || null;
+      const urlsToPreload = [...banners];
+      if (avatarUrl) {
+        urlsToPreload.push(avatarUrl);
+      }
+
+      if (urlsToPreload.length > 0) {
+        await preloadImages(urlsToPreload);
+      }
     } catch (err) {
       console.error("Error al cargar detalles de la distribuidora:", err);
+    } finally {
+      setApiLoading(false);
     }
   };
 
@@ -99,6 +139,7 @@ export default function App() {
   }, [session]);
 
   const handleLoginSuccess = (clientRecord) => {
+    setApiLoading(true); // Activar carga general en login exitoso
     setSession(clientRecord);
   };
 
@@ -113,7 +154,61 @@ export default function App() {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#080c18' }}>
-        <div style={{ width: '36px', height: '36px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#06b6d4', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+        <div style={{ width: '36px', height: '36px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#ffcc00', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+      </div>
+    );
+  }
+
+  // Loader general premium cuando se están consultando datos de API y precargando recursos
+  if (session && apiLoading) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        height: '100svh',
+        background: 'radial-gradient(circle at center, #1a1a1a 0%, #000000 100%)',
+        gap: '24px',
+        color: '#ffffff'
+      }}>
+        {/* Premium glowing spinner */}
+        <div style={{ position: 'relative', width: '64px', height: '64px' }}>
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            border: '4px solid rgba(255, 204, 0, 0.1)',
+            borderTopColor: 'var(--accent-yellow)',
+            borderRadius: '50%',
+            animation: 'spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite',
+            boxShadow: '0 0 15px var(--accent-yellow-glow)'
+          }} />
+          <div style={{
+            position: 'absolute',
+            inset: '8px',
+            border: '2px solid rgba(255, 255, 255, 0.05)',
+            borderBottomColor: 'rgba(255, 255, 255, 0.4)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite reverse'
+          }} />
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+          <span style={{
+            fontSize: '16px',
+            fontWeight: 700,
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+            background: 'linear-gradient(135deg, #ffffff 0%, var(--accent-yellow) 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
+          }}>
+            Ringo Club
+          </span>
+          <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 500 }}>
+            Cargando tus beneficios...
+          </span>
+        </div>
       </div>
     );
   }
@@ -130,59 +225,63 @@ export default function App() {
   const initials = userName[0] || 'C';
 
   return (
-    <div className="app-container animate-fade-in">
-      {/* Header Premium */}
-      <header className="app-header">
-        <div className="header-logo-container">
-          <img src="/logo.png" className="header-logo" alt="Ringo Agromarket Logo" />
-          <span className="header-title">Ringo Agromarket</span>
+    <>
+      <div className="app-container">
+        <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px', flexGrow: 1, width: '100%' }}>
+          {/* Header Premium */}
+          <header className="app-header">
+            <div className="header-logo-container">
+              <img src="/logo.png" className="header-logo" alt="Ringo Agromarket Logo" />
+              <span className="header-title">Ringo Agromarket</span>
+            </div>
+
+            <div className="header-user">
+              <button 
+                type="button" 
+                onClick={handleLogout}
+                className="btn-logout" 
+                title="Cerrar sesión"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
+              </button>
+            </div>
+          </header>
+
+          {/* Hola banner */}
+          <div style={{ textAlign: 'left', padding: '0 4px' }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 800 }}>¡Hola, {userName}! 👋</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Te damos la bienvenida a tu centro de beneficios.</p>
+          </div>
+
+          {/* Renders basados en Tabs de Navegación */}
+          <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '80px' }}>
+            {activeTab === 'dashboard' && (
+              <DashboardView 
+                clientData={finalClientData} 
+                configData={configData} 
+              />
+            )}
+            
+            {activeTab === 'profile' && (
+              <ProfileForm 
+                clientData={finalClientData} 
+                onUpdateSuccess={() => fetchUpdatedDetails()} 
+              />
+            )}
+
+            {activeTab === 'referrals' && (
+              <ReferralsCard 
+                clientData={finalClientData} 
+                configData={configData}
+              />
+            )}
+          </main>
         </div>
-
-        <div className="header-user">
-
-          <button 
-            type="button" 
-            onClick={handleLogout}
-            className="btn-logout" 
-            title="Cerrar sesión"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-          </button>
-        </div>
-      </header>
-
-      {/* Hola banner */}
-      <div style={{ textAlign: 'left', padding: '0 4px' }}>
-        <h3 style={{ fontSize: '20px', fontWeight: 800 }}>¡Hola, {userName}! 👋</h3>
-        <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Te damos la bienvenida a tu centro de beneficios.</p>
       </div>
-
-      {/* Renders basados en Tabs de Navegación */}
-      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '80px' }}>
-        {activeTab === 'dashboard' && (
-          <DashboardView 
-            clientData={finalClientData} 
-            configData={configData} 
-          />
-        )}
-        
-        {activeTab === 'profile' && (
-          <ProfileForm 
-            clientData={finalClientData} 
-            onUpdateSuccess={() => fetchUpdatedDetails()} 
-          />
-        )}
-
-        {activeTab === 'referrals' && (
-          <ReferralsCard 
-            clientData={finalClientData} 
-          />
-        )}
-      </main>
 
       {/* Bottom Tab Bar navigation (Native Mobile style) */}
       <nav style={{
@@ -280,6 +379,6 @@ export default function App() {
           Invitados
         </button>
       </nav>
-    </div>
+    </>
   );
 }
