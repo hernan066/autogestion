@@ -11,10 +11,10 @@ export default function ProfileForm({ clientData, onUpdateSuccess }) {
   };
 
   const [formData, setFormData] = useState({
-    name: clientData?.user?.name || "",
-    lastName: clientData?.user?.lastName || "",
+    name: clientData?.user?.name ? String(clientData.user.name) : "",
+    lastName: clientData?.user?.lastName ? String(clientData.user.lastName) : "",
     phone: getInitialPhone(),
-    cuit: clientData?.cuit || "",
+    cuit: clientData?.cuit !== undefined && clientData?.cuit !== null ? String(clientData.cuit) : "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -33,7 +33,9 @@ export default function ProfileForm({ clientData, onUpdateSuccess }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.lastName.trim()) {
+    const nameStr = String(formData.name).trim();
+    const lastNameStr = String(formData.lastName).trim();
+    if (!nameStr || !lastNameStr) {
       setErrorMsg("Por favor, completa todos los campos obligatorios.");
       return;
     }
@@ -47,15 +49,15 @@ export default function ProfileForm({ clientData, onUpdateSuccess }) {
       const token = localStorage.getItem("autogestion_token") || "";
 
       // 1. Actualizar datos en el modelo User (Nombre, Apellido, Teléfono)
-      const rawPhone = formData.phone.trim();
+      const rawPhone = String(formData.phone).trim();
       const finalPhone = rawPhone
         ? rawPhone.startsWith("54")
           ? rawPhone
           : "54" + rawPhone
         : "";
       const userPayload = {
-        name: formData.name.trim(),
-        lastName: formData.lastName.trim(),
+        name: nameStr,
+        lastName: lastNameStr,
         phone: finalPhone,
       };
 
@@ -77,7 +79,7 @@ export default function ProfileForm({ clientData, onUpdateSuccess }) {
 
       // 2. Actualizar CUIT/DNI en el modelo Client
       const clientPayload = {
-        cuit: formData.cuit.trim(),
+        cuit: String(formData.cuit).trim(),
       };
 
       const clientRes = await fetch(`${apiBase}/api/clients/${clientId}`, {
